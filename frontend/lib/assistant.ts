@@ -38,8 +38,8 @@ export const handleTurn = async () => {
 
   try {
     // To use the python backend, replace by
-    //const response = await fetch('http://localhost:8000/get_response', {
-    const response = await fetch('/api/get_response', {
+    const response = await fetch('http://localhost:8000/get_response', {
+    // const response = await fetch('/api/get_response', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -47,21 +47,35 @@ export const handleTurn = async () => {
       body: JSON.stringify({ messages: allConversationItems })
     })
 
+    // console.log('Response before await:', response)
+
     if (!response.ok) {
       console.error(`Error: ${response.statusText}`)
       return
     }
 
-    const data: MessageItem = await response.json()
-
-    console.log('Response', data)
-
+    const responseMessage: MessageItem = await response.json()
+    /** Frontend expects updated chat message item in the following format:
+    export interface MessageItem {
+      type: 'message'
+      role: 'user' | 'assistant' | 'system'
+      content: string
+    }
+    */
+    /** Python backend will send response following the above format
+    response_data = {
+        "type": "message",
+        "role": "assistant",
+        "content": chat_completion.choices[0].message.content,
+    }
+    */    
+    
     // Update chat messages
-    chatMessages.push(data)
+    chatMessages.push(responseMessage)
     setChatMessages([...chatMessages])
 
     // Update conversation items
-    conversationItems.push(data)
+    conversationItems.push(responseMessage)
     setConversationItems([...conversationItems])
   } catch (error) {
     console.error('Error processing messages:', error)
