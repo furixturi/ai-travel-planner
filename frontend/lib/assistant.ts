@@ -55,6 +55,7 @@ export const handleTurn = async () => {
     }
 
     const responseMessage: MessageItem = await response.json()
+    console.log('Response message:', responseMessage)
     /** Frontend expects updated chat message item in the following format:
     export interface MessageItem {
       type: 'message'

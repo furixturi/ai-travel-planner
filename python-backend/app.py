@@ -7,10 +7,16 @@ import os
 
 load_dotenv()
 
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
+
 app = Flask(__name__)
 CORS(app)
 
 MODEL = "gpt-4o"
+
+tools = [{"type": "function", "function": "get_hotels"}]
 
 
 @app.route("/")
@@ -26,35 +32,25 @@ def get_response():
     messages = data["messages"]
     print("Incoming messages", messages)
 
-    client = OpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-    )
-
     chat_completion = client.chat.completions.create(
         messages=messages,
         model=MODEL,
     )
     print("Chat completion", chat_completion)
-    response_data = {
-        "type": "message",
-        "role": "assistant",
-        "content": chat_completion.choices[0].message.content,
-    }
+    response_message = chat_completion.choices[0].message
+    print("Response message", response_message)
+    # message can contain the following that we need to use
+    ## content: str
+    ## role: str ("user" or "assistant" or "system")
+    ## tool_calls: array
+    ###  - id: str
+    ###  - type: str ("function")
+    ###  - function: object
+    ####   - name: str
+    ####   - arguments: str (json string)
+    ## audio: object or null
 
-    return jsonify(response_data)
-
-
-def _get_response():
-    data = request.get_json()
-    messages = data["messages"]
-    print("Incoming messages", messages)
-    time.sleep(2)
-    return jsonify(
-        {
-            "role": "assistant",
-            "content": "This is a default message, update the backend to get a response from the OpenAI API instead.",
-        }
-    )
+    return jsonify(response_message.model_dump())
 
 
 if __name__ == "__main__":
