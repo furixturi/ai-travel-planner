@@ -4,6 +4,7 @@ import time
 from flask_cors import CORS
 from openai import OpenAI
 import os
+import json
 
 load_dotenv()
 
@@ -16,7 +17,27 @@ CORS(app)
 
 MODEL = "gpt-4o"
 
-tools = [{"type": "function", "function": "get_hotels"}]
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_location",
+            "description": "Browse hotels and landmarks of a location for travel plan recommendations",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "Location to search for, in the format of 'Paris, Ile-de-France, France'",
+                    }
+                },
+                "required": ["location"],
+                "additionalProperties": False,
+            },
+            "strict": True,
+        },
+    }
+]
 
 
 @app.route("/")
@@ -33,8 +54,9 @@ def get_response():
     print("Incoming messages", messages)
 
     chat_completion = client.chat.completions.create(
-        messages=messages,
         model=MODEL,
+        messages=messages,
+        tools=tools,
     )
     print("Chat completion", chat_completion)
     response_message = chat_completion.choices[0].message
@@ -49,6 +71,7 @@ def get_response():
     ####   - name: str
     ####   - arguments: str (json string)
     ## audio: object or null
+    # We send back the response message to the frontend and let it handle tool calls (call another backend API route, or call a third-party API)
 
     return jsonify(response_message.model_dump())
 

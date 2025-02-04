@@ -6,6 +6,7 @@ export interface MessageItem {
   type: 'message'
   role: 'user' | 'assistant' | 'system'
   content: string
+
 }
 
 export interface FunctionCallItem {
@@ -22,8 +23,8 @@ export type Item = MessageItem | FunctionCallItem
 
 export const handleTurn = async () => {
   const {
-    chatMessages,
-    conversationItems,
+    chatMessages, // history of all chat messages. Displayed in the chat UI
+    conversationItems, // history of all system/developer/user/toolcall messages. Sent to the chat completions API
     setChatMessages,
     setConversationItems
   } = useConversationStore.getState()
@@ -54,30 +55,62 @@ export const handleTurn = async () => {
       return
     }
 
-    const responseMessage: MessageItem = await response.json()
-    console.log('Response message:', responseMessage)
-    /** Frontend expects updated chat message item in the following format:
-    export interface MessageItem {
-      type: 'message'
-      role: 'user' | 'assistant' | 'system'
-      content: string
+    const responseJSON = await response.json()
+    console.log('Response JSON:', responseJSON)
+    /** Python backend will send response in the following formats
+    ***** Text message:
+    {
+        "audio": null,
+        "content": "Hello! How can I assist you today?",
+        "function_call": null,
+        "refusal": null,
+        "role": "assistant",
+        "tool_calls": null
+    }
+    ***** Tool call:
+    {
+        "audio": null,
+        "content": null,
+        "function_call": null,
+        "refusal": null,
+        "role": "assistant",
+        "tool_calls": [
+            {
+                "function": {
+                    "arguments": "{\"location\": \"Paris, Ile-de-France, France\"}",
+                    "name": "search_location"
+                },
+                "id": "call_toEOimMhZ0IcMtRimuhMAxF9",
+                "type": "function"
+            },
+            {
+                "function": {
+                    "arguments": "{\"location\": \"Paris, Ile-de-France, France\"}",
+                    "name": "search_location"
+                },
+                "id": "call_9gsmRatVhB7kowabd5oUvIpL",
+                "type": "function"
+            }
+        ]
     }
     */
-    /** Python backend will send response following the above format
-    response_data = {
-        "type": "message",
-        "role": "assistant",
-        "content": chat_completion.choices[0].message.content,
-    }
-    */    
     
-    // Update chat messages
-    chatMessages.push(responseMessage)
-    setChatMessages([...chatMessages])
+    const conversationItem = responseJSON
 
-    // Update conversation items
-    conversationItems.push(responseMessage)
+    // Update conversation items store
+    conversationItems.push(conversationItem)
     setConversationItems([...conversationItems])
+
+    if (conversationItem.tool_calls && conversationItem.tool_calls.length > 0) {
+      // make tool call
+      
+
+    } else {
+      // Update chat messages
+      const responseMessage = conversationItem
+      chatMessages.push(responseMessage)
+      setChatMessages([...chatMessages])
+    }
   } catch (error) {
     console.error('Error processing messages:', error)
   }
