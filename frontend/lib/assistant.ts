@@ -2,6 +2,8 @@ import { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import { SYSTEM_PROMPT } from './constants'
 import useConversationStore from '@/stores/useConversationStore'
 
+const API_URL = 'http://localhost:8000'
+
 export interface MessageItem {
   type: 'message'
   role: 'user' | 'assistant' | 'system'
@@ -39,7 +41,7 @@ export const handleTurn = async () => {
 
   try {
     // To use the python backend, replace by
-    const response = await fetch('http://localhost:8000/get_response', {
+    const response = await fetch(API_URL + '/get_response', {
     // const response = await fetch('/api/get_response', {
       method: 'POST',
       headers: {
@@ -56,6 +58,7 @@ export const handleTurn = async () => {
     }
 
     const responseJSON = await response.json()
+
     console.log('Response JSON:', responseJSON)
     /** Python backend will send response in the following formats
     ***** Text message:
@@ -103,8 +106,10 @@ export const handleTurn = async () => {
 
     if (conversationItem.tool_calls && conversationItem.tool_calls.length > 0) {
       // make tool call
-      
-
+      console.log('Tool call:', conversationItem.tool_calls)
+      const tool_call = conversationItem.tool_calls[0]
+      const tool_response = await handleToolcall(tool_call.function.name, tool_call.function.arguments)
+      console.log('Tool response:', tool_response)
     } else {
       // Update chat messages
       const responseMessage = conversationItem
@@ -113,5 +118,33 @@ export const handleTurn = async () => {
     }
   } catch (error) {
     console.error('Error processing messages:', error)
+  }
+}
+
+export const handleToolcall = async (tool: keyof typeof TOOL_API_MAP, params: string) => {
+  console.log("handleToolcall", tool, params)
+  const TOOL_API_MAP = {
+    search_location: "/search_location"
+  }
+
+  try {
+    const response = await fetch(API_URL + TOOL_API_MAP[tool], {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: params
+    })
+
+    if (!response.ok) {
+      console.error(`Error: ${response.statusText}`)
+      return
+    }
+
+    const responseJSON = await response.json()
+    console.log('Tool call [' + tool + '] Response JSON:', responseJSON)
+
+  } catch (error) {
+    console.error('Error processing toolcall:', error)
   }
 }
