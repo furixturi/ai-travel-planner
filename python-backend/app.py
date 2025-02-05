@@ -8,10 +8,6 @@ import json
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-)
-
 app = Flask(__name__)
 CORS(app)
 
@@ -39,10 +35,62 @@ tools = [
     }
 ]
 
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
+
 
 @app.route("/")
 def home():
     return "Server is running"
+
+
+@app.route("/search_location", methods=["POST", "OPTIONS"])
+def search_location():
+    if request.method == "OPTIONS":
+        return jsonify({"status": "OK"}), 200
+
+    data = request.get_json(force=True)
+    print("/search_location Incoming data", data)
+    location = data.get("location")
+
+    if not location:
+        return jsonify({"error": "Location is required"}), 400
+
+    print("Call SerpAPI to search the location", location)
+    #####
+    # We can call a third-party API here to search for hotels and landmarks of a location
+    # For now, we just return a dummy response
+    # return jsonify(
+    #     {
+    #         "hotels": [
+    #             {
+    #                 "name": "Hotel A",
+    #                 "address": "123 Main St, Paris, Ile-de-France, France",
+    #                 "price": 100,
+    #                 "rating": 4.5,
+    #             },
+    #             {
+    #                 "name": "Hotel B",
+    #                 "address": "456 Elm St, Paris, Ile-de-France, France",
+    #                 "price": 150,
+    #                 "rating": 4.0,
+    #             },
+    #         ],
+    #         "landmarks": [
+    #             {
+    #                 "name": "Eiffel Tower",
+    #                 "address": "Champ de Mars, 5 Avenue Anatole, Paris, Ile-de-France, France",
+    #                 "rating": 4.9,
+    #             },
+    #             {
+    #                 "name": "Louvre Museum",
+    #                 "address": "Rue de Rivoli, Paris, Ile-de-France, France",
+    #                 "rating": 4.8,
+    #             },
+    #         ],
+    #     }
+    # )
 
 
 @app.route("/get_response", methods=["POST"])
